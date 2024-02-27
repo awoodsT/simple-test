@@ -1,0 +1,55 @@
+# Use root/example as user/password credentials
+version: '3.1'
+
+services:
+  app:
+    build:
+      context: ./php
+      args:
+          user: test
+          uid: 1000
+    volumes:
+        - ./:/var/www
+    tty: true
+    working_dir: /var/www
+    networks:
+     - es-net
+
+  db:
+    image: mysql:5.7.35
+    # restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: '123456'
+      MYSQL_DATABASE: 'test'
+      MYSQL_USER: 'test'
+      MYSQL_PASSWORD: 'test'
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+    volumes:
+      - ./dbbase:/var/lib/mysql
+    command:
+      - "--default-authentication-plugin=mysql_native_password"
+    networks:
+     - es-net
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - ${ADMINER_PORT:-8081}:8080
+    networks:
+     - es-net
+
+  web:
+    build: ./nginx
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    volumes_from:
+      - app
+    ports:
+    - "${APP_PORT:-8080}:80"
+    networks:
+     - es-net
+
+networks:
+    es-net:
+      driver: bridge
